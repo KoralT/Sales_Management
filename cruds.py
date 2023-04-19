@@ -3,16 +3,14 @@ from pymongo import MongoClient
 from bson import ObjectId
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 
 origins = [
     "http://localhost/",
     "http://localhost:8000/",
+    "http://localhost:3000",
+    "https://localhost:3000",
 ]
 
 app.add_middleware(
@@ -42,17 +40,19 @@ def create_product(product: Product):
     product_dict["_id"] = str(result.inserted_id)
     return product_dict
 
-@app.get("/products")
+@app.get("/")
 def read_products(skip: int = 0, limit: int = 100):
     products = collection.find().skip(skip).limit(limit)
     return list(map(lambda p: {**p, '_id': str(p['_id'])}, products))
 
 @app.get("/products/{product_id}")
 def read_product(product_id: str):
-    product = collection.find_one({"_id": ObjectId(product_id)})
+    product = collection.find_one({'_id': ObjectId(product_id)})
+    product['_id'] = str(product['_id'])
     if product:
         return product
-    raise HTTPException(status_code=404, detail="Product not found")
+    else:
+        raise HTTPException(status_code=404, detail="Product not found")
 
 
 @app.put("/products/{product_id}")
